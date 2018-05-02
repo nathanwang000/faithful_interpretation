@@ -1,0 +1,274 @@
+#+TITLE: Interpretable Dimension
+#+DATE: <2018-05-02 Wed>
+#+AUTHOR: Jiaxuan Wang
+#+EMAIL: jiaxuan@umich
+#+OPTIONS: ':nil *:t -:t ::t <:t H:3 \n:nil ^:t arch:headline author:t c:nil
+#+OPTIONS: creator:comment d:(not "LOGBOOK") date:t e:t email:nil f:t inline:t
+#+OPTIONS: num:t p:nil pri:nil stat:t tags:t tasks:t tex:t timestamp:t toc:nil
+#+OPTIONS: todo:t |:t
+#+CREATOR: Emacs 25.1.1 (Org mode 8.2.10)
+#+DESCRIPTION:
+#+EXCLUDE_TAGS: noexport
+#+KEYWORDS:
+#+LANGUAGE: en
+#+SELECT_TAGS: export
+
+In this work, I propose a method, Interpretable Dimension (ID), for explaining deep
+neural networks. The highlight of this method is that it only requires the model
+to be last layer interpretable (applies to all popular dnn models b/c last layer
+is linear), and the explaination is faithful (no approximation performed).
+
+I purposefully dodge the question on interpretability definition because of its
+inherent vagueness. For specific models, however, the interpretation of their
+meaning is apparent. Throughout the work, I only assume interpretation in the
+linear model sense, that is the sparse weights of a linear model gives the
+importance of their corresponding features for classification.
+
+This document first reviews literature on model interpretability. Then I
+motivate ID by listing relevant observations. The method section explains ID in
+detail. Afterwhich I outline the questions to answer and give the use cases as
+well as experiments needed to answer those questions. Followed by a small
+section discussing potential issues with this approach, the last section
+summarizes and gives a checklist on what I need to do.
+
+* Related Works
+   
+|                           | Faithful | Model agnostic |
+|---------------------------+----------+----------------|
+| Interpretable Dimension   |        1 |            0.5 |
+| local approximation: LIME |        0 |              1 |
+| Feature Visualization     |        0 |            0.5 |
+| Interpretable models      |        1 |              0 |
+| Attribution               |        0 |            0.5 |
+| model distillation        |        0 |              1 |
+
+I classify existing methods according to faithfulness to the model to be
+explained and model agnositicity. Faithfulness is important because an
+explanation should not be far away from the original model's intent. Being model
+agnostic is important because it will limit the applicability of the
+method. There could be more dimensions considered but I found them
+inessential. For example, one can always convert an instance independent
+explanation into an instance dependent explanation by performing elementwise
+product between input weights and feature importance.
+
+The table above gives a summary of existing methods. 0.5 for model agnositicity
+means explaination works for popular classes of models. For Interpretable
+Dimension, the model class is models with linear last layer. For feature
+visualization and attribution, the model class is differentiable
+models. Attribution method includes but are not limited to input gradient based
+methods. 
+
+Inherently interpretable models include but are not limited to sparse linear
+model, low complexity decision tree, rule list, and baysian case model. Authors
+using those models usually claim that those models acheive the state
+of art on certain benchmarks, but we are not sure if this is a general
+phenonmena because the domains in which interpretable models shines usually
+favors small complexity models, which could mean that the task is very simple.
+
+* Motivation
+  
+  - Individual neurons may not be interpretable
+    
+    This is controversial. On the one hand, works have shown that neurons
+    considered to be "interpretable" does not contribute differently than other
+    neurons to model accuracy (to cite). On the other hand, works have also
+    shown that neurons of a well learned model tends to have more meaning
+    compared to random orthogonal basis in the representation space (to cite). 
+
+    The cleverness of ID lies in the fact that it abondoned trying to look at
+    individual neurons because they are just arbitrary basis for the
+    representation space. If we have interpretable dimensions to use as basis,
+    the explanation should be clearer.
+
+  - Gradient based explanations are usually not faithful
+    
+    There have been evidence showing that gradients closely resembles noise in
+    very deep networks (to cite the shattered gradients problem). This posit a
+    serious problem on how faithful gradient based explanations are. A recent
+    ICLR workshop paper (Local Explanation Methods For Deep Neural Networks Lack
+    Sensitivity To Parameter Values) suggests that gradient based explanation is
+    very robust to random weights in the model, which could either mean that a
+    DNN is inherently very robust, or that the explanation is not useful.
+
+    ID bypass these problems by not focusing on the gradient of the network at
+    all. By only focusing on the last layer, we are back to the comfort zone of
+    linear layers.
+    
+  - Interpretation have different meanings to different people
+    
+    Although people talk about interpretability, there is not a unified
+    definition because it varies vastly across domains and
+    experience. Interpretability is easily recognizable on a case by case
+    scenario, but is hard to enumerate . Instead of coming up with an agreed
+    standard for interpretation, I think it is more fruitful to just assume
+    there exists an atomic set of *concepts* (can be different for each person
+    in each context), and what we mean by interpretability is based on
+    non-controversial operations (linear combination, decision tree on those
+    object etc.) applied to those concepts. Although this *non-controversiality*
+    seems equality hard to quantify, it does reduce the size of the problem
+    because we are no longer arguing on a case by case manner. All the nuonces are
+    delegated to "*concepts*".
+    
+    This sloppieness in "*concepts*" buys us freedom to explain to even aliens
+    who only understand different variations of, say, goldfishes. As a mental
+    example, consider explaining a snail, we can find a photo of a very round
+    goldfish as an approximation (this can be made precise by finding more and
+    more properties of goldfish that resemble a snail; as long as the
+    concepts is linearly independent and equals the rank of the original
+    representation space, this can be done; note that this linearly independent
+    assumption is not stringent at all).
+
+* TODO Method
+
+  Instead, we can define dimensions in the feature space that we can understand
+  and then project the decision making process on to that space. 
+  
+* TODO questions to answer
+*** failure modes
+
+*** questions
+
+One assumption I have is that the chosen directions are interpretable, I need
+to establish they are. So the question is:
+1. Can I use IoU method to show that they are interpretable (each dimension
+   corresponds to one and only one concept)? 
+
+The analysis is simple, if they are indeed more interpretable, I got what I
+want.  If they are not, I also know that the most uninterpretable dimension is
+where the confusion in the network happens (essentially, the network can not
+distinguish those concepts, I then found a bug). So it is a win both ways.
+
+Once we know the network has sensible idea of concepts, can a user easily spot 
+problem in the network?
+
+use customized concepts
+1. Can you predict what the network will output? how fast can you do that
+2. Can you identify flaws in this model? how fast can you do that
+
+What if we don't let users mess around with concepts? Can they explain what the
+network is doing to a alien? This is just to confirm that the success in
+previous question is not caused by people liking the network if they play with
+them
+
+use the predefined concepts (can you explain to an Alien)
+1. Can you predict what the network will output? how fast can you do that
+2. Can you identify flaws in this model? how fast can you do that
+
+While playing with the network's concept is interesting, it can also be
+boring. Can attention mechanism help users better understand the network?
+
+use predefined concepts but attended by the attention network
+1. Can you predict what the network will output? how fast can you do that
+2. Can you identify flaws in this model? how fast can you do that
+
+A case study of two views: to demonstrate how local view complement global view
+1. Give a user both views of a misclassified image, see if a user can identify
+   the issue? how quickly can they identify the issue
+2. Do the same task as 1 but only give global view
+
+*** use cases
+   
+   Here I brainstorm several use cases of *interpretable dimension*
+
+   - understand the decision process
+     e1: predict network prediction 
+     s1: let the user play with the interface for a while, then given a new 
+     instance, ask the user to guess the networks' decision
+     m1: measure time it took a person to make the decision and the prediction 
+     accuracy
+
+   - debugging one's network
+     e1: wolf and dog (wolf always with background of snow)
+     s1: use snow as background concept and if its weight is very high
+     we know fishy stuff are going on
+     m1: generate many of such traps, and see how many users can identify
+
+   - correct network behavior (see insights section)
+     e1: we know that snow is the confounding variable
+     s1: remove snow in dataset, or penalyze the use of that feature
+     m1: measure network performance after removal of feature
+
+   - work flow for debugging
+     Two view of interpretability: the global view v.s. the local view
+     The global view can help users understand what the model is looking for in a 
+     specific class, while the local view give per image explanation.
+     
+     Here's a useful scenario:
+     I suspect "wolf" class is biased, so I first look at global view, looking for
+     systematic bias in a figure. Hopefully I can find a flaw there. If not, I look
+     at pictures where wolf is misclassified and see what the patterns those images
+     are picking on, so I know where the confusion is
+
+*** experiments
+   
+   For each of the question, I should come up with a way to generate data. 
+   I think I should start with close world assumption, that is restrict the 
+   number of concepts 
+   
+* TODO insights and discussion
+*** TODO on deduplicate concepts
+    Often, the concepts provided contains duplicate features. Can we encourage
+    explanation to use as diverse of concepts as possible? 
+
+    There are these stages where features used can be different
+    1. in initializing concepts rely on random choosing? maybe just rely on
+       maximizing the distance within classes is enough, worry about this once
+       problems are encountered
+    2. in fine-tuning concepts
+       intialize STN randomly? not a good idea
+       penalyze already chosen features?
+
+*** on fine-tuning concepts
+   Finding concept is tedius. In this work we assume we have a good way of
+   finding concept.
+
+   However, given a set of concepts, fine-tuning concept is just a matter of
+   finding the attention of the network. It is still not approximation b/c the
+   attention can be arbitrary (if you think about it, manully croping an image
+   is just finding attention).
+
+   That said, effectively, fintuning an object can be thought of as applying
+   transformations to the input image so that its rank is increased. This is an
+   optimization problem: we can train an STN to do exactly this task.
+
+   Here are some ideas:
+   1. Train STN
+      input: concepts
+      output: transformed concepts
+      objective: make the result output has a very large dot product with the 
+      output class to explain
+      
+      $\max_{\theta} w^T \phi(T_{\theta|x,w} (x))$  
+
+   2. Random Search
+      input: concepts
+      output: transformed concepts
+      objective: try a few random cropping and take the max dot product with the
+      output class to explain
+
+      let's just do this for random cropping
+
+   All of these methods hinges on the fact that the original input should be
+   distinct enough that the transformer won't just transform every concepts to
+   be the same. In other words, we need different features that make a wolf a
+   wolf, not the same. In this work, diversity is acheived by the diversity of
+   the initial concept space.
+   
+*** on fine-tuning the network
+    Once we identified issues in the network, can we help it learn better? That
+    is can human knowledge used to guide network fine tuning.
+
+    Surely we can. The key is to penalyze fishy concept to bring their weights
+    down. Here are a couple of ways I can try to do that
+    1. using EYE regularizatio 
+       disadvantage: has a tuning parameter lambda
+    2. initialize final layer weights differently 
+       disadvantage: not able to change the optimization surface so that not
+       able to correct data error
+       advantage: guide the network to a different local minimum
+    3. use a network to initialized parameter 
+       disadvantage: also doesn't change optimization surface, 
+       many more hyper parameters to tune
+       advantage: we don't mess around with the model
+      
+* TODO checklist of experiments
