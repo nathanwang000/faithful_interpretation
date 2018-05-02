@@ -1,0 +1,46 @@
+{% extends "gallery/master.html" %}
+{% block body %}
+
+    <!-- data -->
+    <script type="application/json" id="images_to_sort">
+      {{ idimage_json | safe }}
+    </script>
+    <script type="application/json" id="images_name">
+      {{ classes_json | safe }}
+    </script>
+    <!-- data end -->
+
+    <!-- Page Content -->
+    <div class="container">
+
+      <form class="my-4 text-center text-lg-left" action="/" method="post">
+    	Categories: <input type="text" value={{ placeholder }} name="cat_id"/><br/>
+    	Show Top: <input type="text" value={{ top }} name="top" id="top">
+	<input type="submit">
+      </form>
+
+      <div class="row" style="background-color:#007A33">
+	<div class="col-lg-2" style="color:white">
+      	  <a class="pos">positive</a>
+	</div>
+	<div class="col-lg-2" style="color:white">	
+      	  <a class="neg">negative</a>
+	</div>
+	<div class="col-lg-2" style="color:white">		
+      	  <a class="abs">abs</a>
+	</div>
+	<div class="col-lg-2" style="color:white">
+      	  <a class="mix">mix</a>
+	</div>
+	<div class="col-lg-2" style="color:white">		
+      	  <a class="track">track</a>
+	</div>
+      </div>	
+    </div>
+    <!-- /.container -->
+
+    <div id="main_board" class="container">
+      see main.js to see the main board html
+    </div>
+      
+{% endblock %}

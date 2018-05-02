@@ -1,0 +1,78 @@
+{% extends "gallery/master.html" %}
+{% block body %}
+
+    <!-- data -->
+    <script type="application/json" id="images_to_sort">
+      {{ fn2image_json | safe }}
+    </script>
+    <!-- data end -->
+
+    <!-- Page Content -->
+    <div class="container">
+
+      <form class="my-4 text-center text-lg-left" action="/image" method="post"
+	    enctype="multipart/form-data">
+	Select images: <br/>
+	<input type="file" name="img" accept="image/*" multiple><br/>
+	Show Top: <input type="text" value={{ top }} name="top"><input type="submit">
+      </form>
+
+      <div class="row" style="background-color:#007A33">
+	<div class="col-lg-2" style="color:white">
+      	  <a class="pos">positive</a>
+	</div>
+	<div class="col-lg-2" style="color:white">	
+      	  <a class="neg">negative</a>
+	</div>
+	<div class="col-lg-2" style="color:white">		
+      	  <a class="abs">abs</a>
+	</div>
+	<div class="col-lg-2" style="color:white">
+      	  <a class="mix">mix</a>
+	</div>
+	<div class="col-lg-2" style="color:white">		
+      	  <a class="track">track</a>
+	</div>
+      </div>	
+
+      
+      {% for fn, vals in fn2image.items() %}
+      <div class="row text-center text-lg-left">
+        <div class="col-lg-4 col-md-4 col-xs-6">
+          <a href="#" class="d-block mb-4 h-100">
+            <img class="img-fluid"
+		 src={{ fn }} alt="">
+          </a>
+        </div>
+      </div>
+
+      <div class="row text-center text-lg-left">
+	{% for theta, image, input_weight, index in vals[:12] %}
+        <div class="col-lg-1 col-md-4 col-xs-6">
+	  {% if theta * input_weight > 0%}
+	  <p style="color:green">{{ "%.3f"  % (theta * input_weight) }}</p>
+	  {% else %}
+	  <p style="color:red">{{ "%.3f"  % (theta * input_weight) }}</p>	  
+	  {% endif %}
+	  
+	  {% if input_weight > 0 %}	  
+	  <p style="color:green">{{"%.3f" % input_weight}}</p>
+	  {% else %}
+	  <p style="color:red">{{"%.3f" % input_weight}}</p>	  
+	  {% endif %}
+	  
+          <a href="#" class="d-block mb-4 h-100">
+            <img class="img-fluid"
+		 src={{ image }} alt="">
+          </a>
+
+        </div>
+	{% endfor %}	
+      </div>
+
+      {% endfor %}      
+
+    </div>
+    <!-- /.container -->
+    
+{% endblock %}

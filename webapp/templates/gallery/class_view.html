@@ -1,0 +1,26 @@
+{% extends "gallery/master.html" %}
+{% block body %}
+    <!-- Page Content -->
+    <div class="container">
+
+      {% for id in cat_id %}
+      <div class="image_category">{{ id }}: {{ classes[loop.index-1] }}</div>
+
+      <div class="row text-center text-lg-left">
+	{% for theta, image in id2image[id] %}
+        <div class="col-lg-1 col-md-4 col-xs-6">
+	  {{"%.3f" % theta}}	  
+          <a href="#" class="d-block mb-4 h-100">
+            <img class="img-fluid img-thumbnail"
+		 src={{ image }} alt="">
+          </a>
+        </div>
+	{% endfor %}	
+      </div>
+
+      {% endfor %}      
+
+    </div>
+    <!-- /.container -->
+    
+{% endblock %}

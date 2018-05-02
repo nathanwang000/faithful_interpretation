@@ -1,0 +1,40 @@
+{% extends "gallery/master.html" %}
+
+{% block body %}
+
+<!-- Rounded switch -->
+<div class="container">
+  
+<h3>Track this basis: {{index}}</h3>
+
+<label class="switch">
+  <input type="checkbox" id="track_checkbox">
+  <span class="slider round"></span>
+  <p id="track_index" hidden>{{index}}</p>
+</label>
+
+<div class="row">
+  {% for b in basis_set %}
+  <div class="col-lg-3 col-md-4 col-xs-6">
+
+    {% if  (loop.index == basis_set|length) %}
+    {% set imid="display_img" %}
+    {% else %}
+    {% set imid="non_display_img" %}
+    {% endif %}
+
+    <img  data-src={{ '/' + b }} alt=""	 
+	  style="width:300px;height:300px;"
+	  class="basis img-thumbnail"
+	  id={{imid}} />
+    <br/>
+    <button type="button" id="select_basis">select
+      <p style="display:None" id="impath">{{ b }}</p>
+      <p style="display:None" id="index">{{ index }}</p>      
+    </button>
+    <button type="button">upload</button>
+  </div>
+  {% endfor %}
+</div>
+</div> <!-- container end -->
+{% endblock %}

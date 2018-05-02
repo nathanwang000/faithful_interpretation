@@ -1,0 +1,32 @@
+{% extends "gallery/master.html" %}
+{% block head %}
+<link rel="stylesheet" type="text/css" href="/static/css/normalize.css" />
+<link rel="stylesheet" type="text/css" href="/static/css/demo.css" />
+<link rel="stylesheet" type="text/css" href="/static/css/component.css" />
+{% endblock %}
+
+{% block body %}
+<div class="container">
+  <div class="content">
+    <header class="codrops-header">
+      <h1>Image Resizing &amp; Cropping</h1>
+    </header>
+    <div class="component">
+      <div class="overlay">
+	<div class="overlay-inner">
+	</div>
+      </div>
+      <!-- This image must be on the same domain as the demo or it will not work on a local file system -->
+      <!-- http://en.wikipedia.org/wiki/Cross-origin_resource_sharing -->
+      <img class="resize-image edit" src={{ '/' + name }} alt="image for resizing">
+      <button class="btn-crop js-crop">Crop<img class="icon-crop" src="/static/images/crop.svg"></button>
+    </div>
+    <div class="a-tip">
+      <p><strong>Hint:</strong> hold <span>SHIFT</span> while resizing to keep the original aspect ratio.</p>
+    </div>
+    <p>Interface adapted from <a href="https://tympanus.net/Tutorials/ImageResizeCropCanvas/">Mike Riethmuller</a></p>
+  </div><!-- /content -->
+  <img id="canvasImg"/ class="basis_demo">
+</div> <!-- /container -->
+
+{% endblock %}
