@@ -66,7 +66,13 @@ phenonmena because the domains in which interpretable models shines usually
 favors small complexity models, which could mean that the task is very simple.
 
 * Motivation
-  
+
+  - We need a model that is both faithful and model agnostic
+    
+    ID, as far as I know, is the first model that is both faithful and model
+    agnostic. In other word, we can trust the explanation from ID and it is
+    applicable in a lot of settings.
+
   - Individual neurons may not be interpretable
     
     This is controversial. On the one hand, works have shown that neurons
@@ -116,22 +122,120 @@ favors small complexity models, which could mean that the task is very simple.
     more properties of goldfish that resemble a snail; as long as the
     concepts is linearly independent and equals the rank of the original
     representation space, this can be done; note that this linearly independent
-    assumption is not stringent at all).
+    assumption is not stringent at all). From another point of view, it is
+    too strong to assume what the end user understand, instead, we can just ask
+    users to supply this information to use this system.
+    
+* Method
 
-* TODO Method
+  Interpretable dimension is a really simple idea. It is essentially a change of
+  basis in the last layer of a neural network. The new basis is interpretable
+  because it corresponds to the *concepts* chosen by the user. The rest of the
+  section gives a formal setup.
 
-  Instead, we can define dimensions in the feature space that we can understand
-  and then project the decision making process on to that space. 
+  For a model, we denote its input dimensionality as $d_0$, its output
+  dimension as $d_{-1}$, and it last layer dimension as $d_{-2}$.
+
+  A model $M=\langle \phi, W \rangle$ is a linear last layer model if 
+  - $\phi: \mathbb{R}^{d_0} \rightarrow \mathbb{R}^{d_{-2}}$ transforms an input
+    from the input space to last layer representation
+  - $W \in \mathbb{R}^{d_{-1} \times d_{-2}}$ is final linear layer weights of
+    $M$
+  The definition implies the raw output before softmax is $f(x) = W \phi(x)$ for each
+  input x.
+
+  Given a linear last layer model $M=\langle \phi, W \rangle$ and concept set 
+  $C=\{c_1, c_2, \cdots \}$ ($c_i \in \mathbb{R}^{d_0}$, $|C|=d_{-2}$), ID works
+  by forwarding C to the last layer. 
+
+  Define $P \in \mathbb{R}^{d_{-2} \times d_{-2}}$ such that
+  $P_{ij}=\phi(c_j)_i$. We assume that P is linearly independent (justify this
+  later). Then we note that P is invertible and that $f(x) = W P P^{-1}
+  \phi(x)$. Effectively, what this operation does is to transform $\phi(x)$ from
+  its standard basis to basis formed by $\{ \phi(c_1), \phi(c2), \cdots
+  \}$. Define $\alpha(x) := P^{-1} \phi(x) $ and $A := W P$, we have $f(x) = A
+  \alpha(x)$. Note that the $i^{th}$ entry of $\alpha(x)$ is amount of concept
+  $i$ in the representation space exhibit in x.
+
+  For explaination, we can read off row of A to understand how an output label
+  is composed of linear combination of each concept. We can also read off
+  $\alpha(x)$ to understand how x is composed of each concept. 
   
-* TODO questions to answer
-*** failure modes
+* questions to answer
+** The story to tell
+   
+   We need to first establish that interpretable dimension is indeed more
+   interpretable than the standard basis. The way to acheive this is to use IoU
+   approach proposed in network dissection. 
 
-*** questions
+   For a qualitative assessment of interpretability, we can compare different
+   initializations a) random Imagenet b) broden dataset c) colors and shapes
+   only. The goal is to have a feeling on how the method works.
+
+   Then we have to explain why ID is better than baseline methods. For KNN, we
+   establish this by finding instances where the important features are
+   correctly identified, but certain feature detector is flawed. For other
+   approximation method, we can easily identify cases where approximation can be
+   arbitrarily bad (by finding confounding). To claim better interpretability of
+   ID, we need to conduct human subject experiments.
+
+   One key for human subject experiments is that interpretability is different
+   per person, so we really want people to explore the interface and test
+   whether learning with different concept makes a difference in performing
+   tests such as 1) network output prediction 2) identify confouder.
+
+   Then we can explore not very important questions such as how sensitive is ID
+   to number of concepts used for approximation. We can still use IoU to get a
+   feeling.
+
+   The bottleneck of the method is finding good concepts, we can try to either
+   randomly crop or use STN to sharpening existing concepts. This should make
+   the result more interpretable.
+
+** how unique is ID?
+  - how is this different from KNN?  
+
+    The output class explanation (feature importance) can be seen as a special
+    case of KNN as the similarity metric is dot product. However, output class
+    explanation only shows what a class is trying to find, it doesn't find the
+    linear decomposition of the concepts, that is it doesn't know which
+    important concept is present that make the prediction confident.
+
+    Also, KNN alone is not a faithful explanation. With KNN, we still don't know
+    how those similar concepts are combined to make the final decision. 
+
+    So technically, ID = KNN with projection metric  + linear refactor
+    
+    This decomposition is most natural to the network we want to explain. There
+    may be better ways to refactor a given vector, but since we assume linear
+    independent of the features, the linear factorization is unique.
+    
+  - how is this different from just reading softmax score?
+
+    reading softmax score is again a variant of KNN, so same as above
+
+  - how to fail a KNN?
+    
+    KNN only gives important features, but doesn't tell you which ones are
+    present. So it is just an incomplete explanation.
+
+    With ID, we can explore which detectors are off (important but not found)
+    and what features shouldn't be important.
+
+    So to fail KNN, we just need a situation where the important features make
+    sense, but the individual detector is off. For example, consider the case
+    where having a tail is very important, but tail detector is always outputing
+    -1 for not found (find a way to hack tail detector so that it is very not
+    robust). So that by only looking at KNN, it is not at all clear why the
+    network is failing (identified all important features), but with ID, we can
+    pin point where the failure is, in this case, it is just not detecting tail.
+
+** questions
 
 One assumption I have is that the chosen directions are interpretable, I need
 to establish they are. So the question is:
-1. Can I use IoU method to show that they are interpretable (each dimension
-   corresponds to one and only one concept)? 
+- Can I use IoU method to show that they are interpretable (each dimension
+  corresponds to one and only one concept)? 
 
 The analysis is simple, if they are indeed more interpretable, I got what I
 want.  If they are not, I also know that the most uninterpretable dimension is
@@ -142,8 +246,8 @@ Once we know the network has sensible idea of concepts, can a user easily spot
 problem in the network?
 
 use customized concepts
-1. Can you predict what the network will output? how fast can you do that
-2. Can you identify flaws in this model? how fast can you do that
+- Can you predict what the network will output? how fast can you do that?
+- Can you identify flaws in this model? how fast can you do that?
 
 What if we don't let users mess around with concepts? Can they explain what the
 network is doing to a alien? This is just to confirm that the success in
@@ -151,44 +255,54 @@ previous question is not caused by people liking the network if they play with
 them
 
 use the predefined concepts (can you explain to an Alien)
-1. Can you predict what the network will output? how fast can you do that
-2. Can you identify flaws in this model? how fast can you do that
+- Can you predict what the network will output? how fast can you do that
+- Can you identify flaws in this model? how fast can you do that
 
 While playing with the network's concept is interesting, it can also be
 boring. Can attention mechanism help users better understand the network?
 
 use predefined concepts but attended by the attention network
-1. Can you predict what the network will output? how fast can you do that
-2. Can you identify flaws in this model? how fast can you do that
+- Can you predict what the network will output? how fast can you do that
+- Can you identify flaws in this model? how fast can you do that
 
 A case study of two views: to demonstrate how local view complement global view
-1. Give a user both views of a misclassified image, see if a user can identify
+- Give a user both views of a misclassified image, see if a user can identify
    the issue? how quickly can they identify the issue
-2. Do the same task as 1 but only give global view
+- Do the same task as above but only give global view
 
-*** use cases
+** use cases
    
    Here I brainstorm several use cases of *interpretable dimension*
 
    - understand the decision process
+
      e1: predict network prediction 
+
      s1: let the user play with the interface for a while, then given a new 
      instance, ask the user to guess the networks' decision
+
      m1: measure time it took a person to make the decision and the prediction 
      accuracy
 
    - debugging one's network
+
      e1: wolf and dog (wolf always with background of snow)
+
      s1: use snow as background concept and if its weight is very high
      we know fishy stuff are going on
+
      m1: generate many of such traps, and see how many users can identify
 
    - correct network behavior (see insights section)
+
      e1: we know that snow is the confounding variable
+
      s1: remove snow in dataset, or penalyze the use of that feature
+
      m1: measure network performance after removal of feature
 
    - work flow for debugging
+
      Two view of interpretability: the global view v.s. the local view
      The global view can help users understand what the model is looking for in a 
      specific class, while the local view give per image explanation.
@@ -198,25 +312,18 @@ A case study of two views: to demonstrate how local view complement global view
      systematic bias in a figure. Hopefully I can find a flaw there. If not, I look
      at pictures where wolf is misclassified and see what the patterns those images
      are picking on, so I know where the confusion is
-
-*** experiments
-   
-   For each of the question, I should come up with a way to generate data. 
-   I think I should start with close world assumption, that is restrict the 
-   number of concepts 
-   
-* TODO insights and discussion
-*** TODO on deduplicate concepts
+     
+** insights and discussion
+*** on deduplicate concepts
     Often, the concepts provided contains duplicate features. Can we encourage
     explanation to use as diverse of concepts as possible? 
 
-    There are these stages where features used can be different
     1. in initializing concepts rely on random choosing? maybe just rely on
        maximizing the distance within classes is enough, worry about this once
        problems are encountered
     2. in fine-tuning concepts
        intialize STN randomly? not a good idea
-       penalyze already chosen features?
+       penalyze features similar to already chosen features?
 
 *** on fine-tuning concepts
    Finding concept is tedius. In this work we assume we have a good way of
@@ -233,16 +340,22 @@ A case study of two views: to demonstrate how local view complement global view
 
    Here are some ideas:
    1. Train STN
+
       input: concepts
+
       output: transformed concepts
+
       objective: make the result output has a very large dot product with the 
       output class to explain
-      
+
       $\max_{\theta} w^T \phi(T_{\theta|x,w} (x))$  
 
    2. Random Search
+
       input: concepts
+
       output: transformed concepts
+
       objective: try a few random cropping and take the max dot product with the
       output class to explain
 
@@ -258,17 +371,61 @@ A case study of two views: to demonstrate how local view complement global view
     Once we identified issues in the network, can we help it learn better? That
     is can human knowledge used to guide network fine tuning.
 
-    Surely we can. The key is to penalyze fishy concept to bring their weights
-    down. Here are a couple of ways I can try to do that
-    1. using EYE regularizatio 
+    Maybe we can. The key is to penalyze fishy concept to bring their weights
+    down. Here are a couple of ways I can try
+
+    1. using EYE regularization
+
        disadvantage: has a tuning parameter lambda
+
     2. initialize final layer weights differently 
+
        disadvantage: not able to change the optimization surface so that not
        able to correct data error
+
        advantage: guide the network to a different local minimum
+
     3. use a network to initialized parameter 
+
        disadvantage: also doesn't change optimization surface, 
        many more hyper parameters to tune
-       advantage: we don't mess around with the model
-      
-* TODO checklist of experiments
+
+* checklist of experiments
+  - [-] [0/4] refine explanation interface
+    - [-] [1/2] refine per image explanation
+      - [ ] beside the image, show the top 5 class of explanation with score, then
+        user can choose which one to use to for theta explanation
+      - [X] if no files chosen, just show the current image with show top
+        updated
+    - [ ] try to make track consistent with positive, negative, abs, mix (now
+      only with abs)
+    - [ ] figure out how to not explicity calculate inverse
+    - [ ] fix bug when clicking on non basis image
+  - [ ] [0/2] color and shape only experiment
+    - [ ] generate those concepts
+    - [ ] initialize with the web app 
+  - [-] [1/4] broden dataset IoU code setup
+    - [X] download dataset
+    - [ ] run their code
+    - [ ] read their code
+    - [ ] initialize for my code
+  - [ ] [0/2] approximation with lower number of concepts
+    - [ ] report explained variance as in PCA on x axis
+    - [ ] report interpretability in terms of IoU on y axis
+  - [ ] [0/2] sharpening concepts
+    - [ ] [0/0] random cropping
+      - crop selected concept randomly, and use the one that improves the
+      importance of the concepts the most 
+    - [ ] [0/0] STN cropping
+      - see the discussion in on fine-tuing concepts 
+  - [ ] [0/3] failure mode for approximation method
+    - [ ] failure mode for KNN
+      see how to fail KNN above
+    - [ ] failure mode for LIME (may not need to do experiments if citing is
+      enough
+    - [ ] failure mode for gradient based method (may not need to do experiments
+      if citing is enough)
+  - [ ] [0/2] human subject experiments
+    - [ ] network output prediction
+    - [ ] confounder identification
+
