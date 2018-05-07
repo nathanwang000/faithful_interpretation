@@ -136,11 +136,10 @@ def image_view():
                                                        test_image_name=filename,
                                                        coordinate=False,
                                                                   top=4096)
-            
+        # todo: get top 5 predictions here
         fn2image[filename] = list(zip(theta, images, input_weights, selection))
 
     return render_template('gallery/image.html',
-                           fn2image=fn2image,
                            fn2image_json=json.dumps(fn2image),    
                            top=top)
 
