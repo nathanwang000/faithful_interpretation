@@ -391,19 +391,23 @@ A case study of two views: to demonstrate how local view complement global view
        many more hyper parameters to tune
 
 * checklist of experiments
-  - [-] [0/4] refine explanation interface
+  - [-] [0/6] refine explanation interface
     - [-] [1/2] refine per image explanation
       - [ ] beside the image, show the top 5 class of explanation with score, then
         user can choose which one to use to for theta explanation
       - [X] if no files chosen, just show the current image with show top
         updated
     - [ ] try to make track consistent with positive, negative, abs, mix (now
-      only with abs)
+      only with abs) ***
+    - [-] [1/2] add a button to initialize differently ***
+      - [X] blocking mode
+      - [ ] async mode
+    - [ ] show approximation strength in the interface ***
     - [ ] figure out how to not explicity calculate inverse
     - [ ] fix bug when clicking on non basis image
-  - [ ] [0/2] color and shape only experiment
-    - [ ] generate those concepts
-    - [ ] initialize with the web app 
+  - [X] [2/2] color and shape only initialization
+    - [X] generate those concepts
+    - [X] initialize with the web app 
   - [-] [3/6] broden dataset IoU code setup
     - [X] download dataset
     - [X] see the presentation
@@ -430,4 +434,5 @@ A case study of two views: to demonstrate how local view complement global view
   - [ ] [0/2] human subject experiments
     - [ ] network output prediction
     - [ ] confounder identification
-
+  - [ ] [0/1] explain time series data
+    - [ ] time series data explaination 
