@@ -404,9 +404,11 @@ A case study of two views: to demonstrate how local view complement global view
   - [ ] [0/2] color and shape only experiment
     - [ ] generate those concepts
     - [ ] initialize with the web app 
-  - [-] [1/4] broden dataset IoU code setup
+  - [-] [3/6] broden dataset IoU code setup
     - [X] download dataset
-    - [ ] run their code
+    - [X] see the presentation
+    - [ ] carefully read the paper
+    - [X] run their code
     - [ ] read their code
     - [ ] initialize for my code
   - [ ] [0/2] approximation with lower number of concepts
