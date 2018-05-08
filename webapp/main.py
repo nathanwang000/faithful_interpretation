@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from glob import glob
 import cv2
 from src.utility import preprocess_im, convert_image_np, getImageNetDict, load_basis
-from src.utility import extract_features, getContribution, predict
+from src.utility import extract_features, getContribution, predict, load_imagenet_basis
 import torch.optim as optim
 import torch.nn as nn
 import copy
@@ -20,8 +20,9 @@ from torch.utils.data import Dataset, DataLoader, TensorDataset
 from torch.autograd import Variable
 from src.parallel_run import ProcessManager
 import multiprocessing as mp
+import settings
 
-# load model and annotations
+# load model and labels
 alexnet = models.alexnet(pretrained=True).cuda()
 model = copy.deepcopy(alexnet).cuda()
 model.classifier = nn.Sequential(*list(alexnet.classifier.children())[:-1])
@@ -31,19 +32,32 @@ print('after loading the model')
 imagenetdict = getImageNetDict()
 
 # load basis:
-basis = load_basis(filedir='static/images/tiny-imagenet-200/train/*',
-                   n_per_class=21)
-basis_history = [[b, b] for b in basis]
-basis_index = dict([(b,i) for i, b in enumerate(basis)])
-
-features = extract_features(model, basis)
-A = features.transpose(0,1).data.cpu().numpy()
-
-newW = W.dot(A) # the new data
-upload_dir = "static/images/tests"
-
+BASIS = None
+BASIS_HISTORY = None
+BASIS_INDEX = None
+A = None
+newW = None
 Ainv = None
 
+def get_basis(path="static/images/color_shape_separate/*"):
+    global BASIS, BASIS_HISTORY, BASIS_INDEX, A, newW, Ainv
+    if path == 'imagenet':
+        BASIS = load_imagenet_basis(filedir='static/images/tiny-imagenet-200/train/*',
+                                    n_per_class=21)
+    else:
+        BASIS = load_basis(filedir=path)
+    BASIS_HISTORY = [[b, b] for b in BASIS]
+    BASIS_INDEX = dict([(b,i) for i, b in enumerate(BASIS)])
+
+    features = extract_features(model, BASIS)
+    A = features.transpose(0,1).data.cpu().numpy()
+
+    newW = W.dot(A)
+    Ainv = None
+
+get_basis()
+
+# helper to find Ainv
 def getAinv():
     return np.linalg.pinv(A)
 
@@ -74,7 +88,20 @@ def favicon():
 def app_update_Ainv():
     update_Ainv()
     return "update Ainv"
-    
+
+@app.route('/change_basis', methods=['POST'])
+def app_change_basis():
+    basis_class = request.values['basis_class']
+    if basis_class == 'imagenet':
+        im_path = basis_class
+    else:
+        im_path = os.path.join("static/images/", basis_class) + "/*"
+    get_basis(im_path)
+    # PM._terminateAll()
+    # PM.add(target=get_basis, args=(basis_path,))
+    # PM.run()
+    return "change basis"
+
 @app.route('/', methods=['POST', 'GET'])
 def index():
     cat_id = [107, 249, 940, 1, 2, 113]
@@ -89,7 +116,7 @@ def index():
     id2image = {}
     for predict_id in cat_id:
         theta, images, _, selection = getContribution(newW, predict_id, A, Ainv,
-                                           imagenetdict, basis, net, model,
+                                           imagenetdict, BASIS, net, model,
                                            top=4096)
         id2image[predict_id] = list(zip(theta, images, selection))
 
@@ -115,7 +142,7 @@ def image_view():
         filenames = []
         for im in files:
             filename = secure_filename(im.filename)
-            filename = os.path.join(upload_dir, filename)
+            filename = os.path.join(settings.UPLOAD_DIR, filename)
             im.save(filename)            
             filenames.append(filename)
 
@@ -131,7 +158,7 @@ def image_view():
         theta, images, input_weights, selection = getContribution(newW, predict_id=None,
                                                        A=A, Ainv=Ainv,
                                                        imagenetdict=imagenetdict,
-                                                       basis=basis,
+                                                       basis=BASIS,
                                                        net=net, model=model,
                                                        test_image_name=filename,
                                                        coordinate=False,
@@ -145,18 +172,18 @@ def image_view():
 
 @app.route('/concepts', methods=['GET'])
 def concepts_view():
-    return render_template('gallery/concepts.html', basis=basis)
+    return render_template('gallery/concepts.html', basis=BASIS)
 
 @app.route('/basis/<name>', methods=['GET'])
 def concept_show(name): # show particular basis
     image_path = "/".join(name.split('^'))
-    index = basis_index.get(image_path, None)
+    index = BASIS_INDEX.get(image_path, None)
     if index is None:
         name = os.path.basename(image_path)
         image_path = "/".join(name.split('@'))[:-4] # todo: come up with a better scheme
-        index = basis_index.get(image_path, None)
+        index = BASIS_INDEX.get(image_path, None)
     return render_template('gallery/concept_show.html',
-                           basis_set=basis_history[index],
+                           basis_set=BASIS_HISTORY[index],
                            index=index) 
 
 @app.route('/basis/', methods=['POST'])
@@ -167,7 +194,7 @@ def swap_basis():
     b = extract_features(model, [impath])[0].data.cpu().numpy()
     A[:,index] = b
     # update basis history
-    basis_history[index][-1] = impath
+    BASIS_HISTORY[index][-1] = impath
     # async update Ainv
     global newW
 
@@ -176,7 +203,7 @@ def swap_basis():
     # update_Ainv()
     
     newW = W.dot(A)
-    basis[index] = impath
+    BASIS[index] = impath
     return "swap basis done"
     
 @app.route('/concepts/<name>', methods=['POST', 'GET'])
@@ -193,13 +220,13 @@ def concept_edit(name):
         with open(new_im_path, "wb") as fh:
             fh.write(body)
 
-        index = basis_index.get(image_path, None)
+        index = BASIS_INDEX.get(image_path, None)
         if index is not None: # now we know it is a basis
             # return extract one column of basis
             b = extract_features(model, [new_im_path])[0].data.cpu().numpy()
             A[:,index] = b
             # update basis history
-            basis_history[index][-1] = new_im_path
+            BASIS_HISTORY[index][-1] = new_im_path
             # async update Ainv
             global newW
 
@@ -208,7 +235,7 @@ def concept_edit(name):
             # update_Ainv()                
                 
             newW = W.dot(A)
-            basis[index] = new_im_path
+            BASIS[index] = new_im_path
     
     return render_template('gallery/concept_edit.html', name=image_path)
 

@@ -416,7 +416,22 @@ $("#calc_Ainv").click(function() {
 	type: "POST",
 	url: '/update_Ainv'
     }).done(function(){
-	//console.log('add_task_done')
     })
 })
 
+// change basis
+$("button#change_basis").click(function() {
+    console.log('change basis clicked')    
+    var basis_class = $("input#change_basis").val()
+    if (basis_class != '') {
+	console.log(basis_class)
+	$.ajax({
+	    type: "POST",
+	    url: '/change_basis',
+	    data: {
+		basis_class: basis_class
+	    }
+	}).done(function(){
+	})
+    }
+})

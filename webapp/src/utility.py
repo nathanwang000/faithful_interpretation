@@ -80,7 +80,7 @@ def extract_features(net, images):
         features.append(net(images_batch))
     return torch.cat(features, dim=0)
 
-def load_basis(filedir='static/images/tiny-imagenet-200/train/*',
+def load_imagenet_basis(filedir='static/images/tiny-imagenet-200/train/*',
                n_per_class=10):
     # visualize random images in each class of input
     types = glob(filedir)
@@ -93,6 +93,11 @@ def load_basis(filedir='static/images/tiny-imagenet-200/train/*',
     res = np.random.permutation(res)[:4096]
     print('done loading_basis')
     return list(res)
+
+def load_basis(filedir='static/images/color_shape_combined/*'):
+    images = np.random.permutation(glob(filedir))[:4096]
+    print('done loading_basis')
+    return list(images)
 
 def lst_sq_solve(A, Ainv, b):
     # least square solve
